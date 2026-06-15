@@ -2,6 +2,7 @@ node_modules/
 dist/
 data/
 *.db
+!prisma/seed.db
 .env
 **/.env
 backend/.env

@@ -1,13 +1,35 @@
 /**
- * Vercel serverless: only /tmp is writable.
- * Must run before PrismaClient is instantiated.
+ * Ensures SQLite database exists on Vercel serverless (/tmp only).
+ * Copies pre-seeded database template on cold start.
  */
-export function resolveDatabaseUrl(): string {
-  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-    return 'file:/tmp/parking.db';
+import fs from 'fs';
+import path from 'path';
+
+const TMP_DB = '/tmp/parking.db';
+
+export function ensureServerlessDatabase(): void {
+  if (!process.env.VERCEL) return;
+
+  process.env.DATABASE_URL = `file:${TMP_DB}`;
+
+  if (fs.existsSync(TMP_DB)) return;
+
+  const candidates = [
+    path.join(process.cwd(), 'prisma', 'seed.db'),
+    path.join(__dirname, '..', 'prisma', 'seed.db'),
+    path.join(__dirname, '..', '..', 'prisma', 'seed.db'),
+  ];
+
+  for (const seedPath of candidates) {
+    if (fs.existsSync(seedPath)) {
+      fs.copyFileSync(seedPath, TMP_DB);
+      console.log('[DB] Copied seed database to', TMP_DB);
+      return;
+    }
   }
-  return process.env.DATABASE_URL || 'file:./prisma/dev.db';
+
+  console.warn('[DB] seed.db not found, will try prisma db push');
 }
 
-// Set env before any Prisma import elsewhere
-process.env.DATABASE_URL = resolveDatabaseUrl();
+// Run immediately on import
+ensureServerlessDatabase();
