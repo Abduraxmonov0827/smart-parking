@@ -46,6 +46,10 @@ class ArduinoSimulator {
 
   async start(): Promise<void> {
     if (this.isRunning) return;
+    if (process.env.VERCEL) {
+      console.log('[Arduino] Simulator skipped on Vercel serverless');
+      return;
+    }
 
     const settings = await settingsService.get();
     if (!settings.arduinoEnabled) {
