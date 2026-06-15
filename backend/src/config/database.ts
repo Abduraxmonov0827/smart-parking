@@ -1,7 +1,14 @@
-import '../config/db-url';
+import { databaseWasReseeded, ensureServerlessDatabase } from './db-url';
 import { PrismaClient } from '@prisma/client';
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+
+ensureServerlessDatabase();
+
+if (databaseWasReseeded && globalForPrisma.prisma) {
+  void globalForPrisma.prisma.$disconnect();
+  delete globalForPrisma.prisma;
+}
 
 export const prisma =
   globalForPrisma.prisma ||
@@ -9,7 +16,6 @@ export const prisma =
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 
-// Cache client across warm invocations (Vercel serverless)
 globalForPrisma.prisma = prisma;
 
 export default prisma;
