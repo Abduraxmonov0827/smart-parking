@@ -16,8 +16,9 @@ export function ensureServerlessDatabase(): void {
 
   const candidates = [
     path.join(process.cwd(), 'prisma', 'seed.db'),
-    path.join(__dirname, '..', 'prisma', 'seed.db'),
+    path.join(process.cwd(), 'prisma', 'prisma', 'seed.db'),
     path.join(__dirname, '..', '..', 'prisma', 'seed.db'),
+    path.join(__dirname, '..', '..', '..', 'prisma', 'seed.db'),
   ];
 
   for (const seedPath of candidates) {

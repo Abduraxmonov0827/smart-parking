@@ -9,24 +9,11 @@ let initialized = false;
 async function init() {
   if (initialized) return;
 
-  const dbUrl = process.env.DATABASE_URL || 'file:/tmp/parking.db';
   const tmpDb = '/tmp/parking.db';
-
   if (process.env.VERCEL && !fs.existsSync(tmpDb)) {
-    const { execSync } = await import('child_process');
-    try {
-      execSync('npx prisma db push --skip-generate', {
-        stdio: 'pipe',
-        env: { ...process.env, DATABASE_URL: dbUrl },
-      });
-      execSync('npx tsx prisma/seed.ts', {
-        stdio: 'pipe',
-        env: { ...process.env, DATABASE_URL: dbUrl },
-      });
-      console.log('[DB] Created and seeded via prisma');
-    } catch (e) {
-      console.error('[DB Init Error]', e);
-    }
+    throw new Error(
+      'Database not initialized: seed.db was not copied to /tmp. Ensure backend/prisma/seed.db is deployed.'
+    );
   }
 
   if (!app) {
