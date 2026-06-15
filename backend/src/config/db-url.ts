@@ -1,9 +1,10 @@
 /**
  * Ensures SQLite database exists on Vercel serverless (/tmp only).
- * Copies pre-seeded database template on cold start.
+ * Writes embedded seed database on cold start.
  */
 import fs from 'fs';
 import path from 'path';
+import { SEED_DB_BASE64 } from './seed-db';
 
 const TMP_DB = '/tmp/parking.db';
 
@@ -14,11 +15,15 @@ export function ensureServerlessDatabase(): void {
 
   if (fs.existsSync(TMP_DB)) return;
 
+  if (SEED_DB_BASE64) {
+    fs.writeFileSync(TMP_DB, Buffer.from(SEED_DB_BASE64, 'base64'));
+    console.log('[DB] Wrote embedded seed database to', TMP_DB);
+    return;
+  }
+
   const candidates = [
     path.join(process.cwd(), 'prisma', 'seed.db'),
-    path.join(process.cwd(), 'prisma', 'prisma', 'seed.db'),
     path.join(__dirname, '..', '..', 'prisma', 'seed.db'),
-    path.join(__dirname, '..', '..', '..', 'prisma', 'seed.db'),
   ];
 
   for (const seedPath of candidates) {
@@ -29,8 +34,7 @@ export function ensureServerlessDatabase(): void {
     }
   }
 
-  console.warn('[DB] seed.db not found, will try prisma db push');
+  throw new Error('[DB] No seed database available for Vercel serverless');
 }
 
-// Run immediately on import
 ensureServerlessDatabase();

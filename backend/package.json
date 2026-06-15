@@ -5,14 +5,14 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "prisma generate && tsc",
+    "build": "node scripts/embed-seed.mjs && prisma generate && tsc",
     "start": "node dist/server.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "build:render": "prisma generate && prisma db push && npm run build",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate && node scripts/embed-seed.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
