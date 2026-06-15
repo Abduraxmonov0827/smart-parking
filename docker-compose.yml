@@ -1,0 +1,51 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smart-parking-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: file:/data/parking.db
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      PORT: 3001
+      NODE_ENV: production
+      ARDUINO_INTERVAL_MS: ${ARDUINO_INTERVAL_MS:-15000}
+      SENSOR_THRESHOLD_CM: ${SENSOR_THRESHOLD_CM:-30}
+      HOURLY_RATE: ${HOURLY_RATE:-5.0}
+      FACILITY_NAME: ${FACILITY_NAME:-Smart Parking Facility}
+      RUN_SEED: ${RUN_SEED:-true}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    volumes:
+      - parking-data:/data
+    networks:
+      - parking-net
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smart-parking-web
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - parking-net
+
+volumes:
+  parking-data:
+    driver: local
+
+networks:
+  parking-net:
+    driver: bridge

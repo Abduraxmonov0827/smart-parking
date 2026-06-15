@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+  USER
+}
+
+enum SlotStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  MAINTENANCE
+}
+
+enum SensorStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+enum TransactionStatus {
+  ACTIVE
+  COMPLETED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  logs      SystemLog[]
+}
+
+model Vehicle {
+  id           String               @id @default(uuid())
+  plateNumber  String               @unique
+  ownerName    String
+  vehicleType  String               @default("car")
+  color        String               @default("white")
+  phone        String               @default("")
+  createdAt    DateTime             @default(now())
+  transactions ParkingTransaction[]
+}
+
+model ParkingSlot {
+  id           String               @id @default(uuid())
+  slotNumber   String               @unique
+  floor        Int                  @default(1)
+  zone         String               @default("A")
+  status       SlotStatus           @default(AVAILABLE)
+  sensorStatus SensorStatus         @default(ACTIVE)
+  sensorValue  Float                @default(100.0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  transactions ParkingTransaction[]
+  sensorLogs   SensorLog[]
+}
+
+model ParkingTransaction {
+  id        String            @id @default(uuid())
+  vehicleId String
+  slotId    String
+  entryTime DateTime          @default(now())
+  exitTime  DateTime?
+  duration  Int?
+  fee       Float             @default(0)
+  status    TransactionStatus @default(ACTIVE)
+  vehicle   Vehicle           @relation(fields: [vehicleId], references: [id])
+  slot      ParkingSlot       @relation(fields: [slotId], references: [id])
+}
+
+model SensorLog {
+  id          String      @id @default(uuid())
+  slotId      String
+  sensorValue Float
+  timestamp   DateTime    @default(now())
+  slot        ParkingSlot @relation(fields: [slotId], references: [id])
+}
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+model SystemSettings {
+  id              Int      @id @default(1)
+  facilityName    String   @default("Smart Parking Facility")
+  totalSlots      Int      @default(24)
+  hourlyRate      Float    @default(5.0)
+  currency        String   @default("USD")
+  openTime        String   @default("06:00")
+  closeTime       String   @default("23:00")
+  arduinoEnabled  Boolean  @default(true)
+  sensorThreshold Float    @default(30.0)
+  updatedAt       DateTime @updatedAt
+}
