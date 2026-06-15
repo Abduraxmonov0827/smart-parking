@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import { errorHandler } from './middleware';
+import { getServerlessDbStatus } from './config/db-url';
+import prisma from './config/database';
 import authRoutes from './routes/auth.routes';
 import vehicleRoutes from './routes/vehicle.routes';
 import parkingRoutes from './routes/parking.routes';
@@ -17,7 +19,15 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.get('/api/health', (_req, res) => {
+app.get('/api/health', async (_req, res) => {
+  const db = getServerlessDbStatus();
+  let userCount: number | null = null;
+  try {
+    userCount = await prisma.user.count();
+  } catch {
+    userCount = null;
+  }
+
   res.json({
     success: true,
     data: {
@@ -25,6 +35,7 @@ app.get('/api/health', (_req, res) => {
       service: 'Smart Parking Management System',
       version: '2.0.0',
       timestamp: new Date().toISOString(),
+      db: { ...db, userCount },
     },
   });
 });

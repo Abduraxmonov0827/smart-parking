@@ -11,6 +11,14 @@ const MIN_VALID_DB_BYTES = 50_000;
 
 export let databaseWasReseeded = false;
 
+function isServerlessRuntime(): boolean {
+  return (
+    Boolean(process.env.VERCEL) ||
+    Boolean(process.env.VERCEL_ENV) ||
+    process.env.DATABASE_URL?.includes('/tmp/parking.db') === true
+  );
+}
+
 function writeEmbeddedSeed(): void {
   if (!SEED_DB_BASE64) {
     throw new Error('[DB] Embedded seed database is empty');
@@ -22,7 +30,7 @@ function writeEmbeddedSeed(): void {
 }
 
 export function ensureServerlessDatabase(): void {
-  if (!process.env.VERCEL) return;
+  if (!isServerlessRuntime()) return;
 
   process.env.DATABASE_URL = `file:${TMP_DB}`;
 
@@ -37,26 +45,19 @@ export function ensureServerlessDatabase(): void {
     console.log('[DB] Removed invalid database file from', TMP_DB);
   }
 
-  if (SEED_DB_BASE64) {
-    writeEmbeddedSeed();
-    return;
-  }
+  writeEmbeddedSeed();
+}
 
-  const candidates = [
-    path.join(process.cwd(), 'prisma', 'seed.db'),
-    path.join(__dirname, '..', '..', 'prisma', 'seed.db'),
-  ];
-
-  for (const seedPath of candidates) {
-    if (fs.existsSync(seedPath)) {
-      fs.copyFileSync(seedPath, TMP_DB);
-      databaseWasReseeded = true;
-      console.log('[DB] Copied seed database to', TMP_DB);
-      return;
-    }
-  }
-
-  throw new Error('[DB] No seed database available for Vercel serverless');
+export function getServerlessDbStatus() {
+  const exists = fs.existsSync(TMP_DB);
+  return {
+    runtime: isServerlessRuntime(),
+    databaseUrl: process.env.DATABASE_URL,
+    tmpDbExists: exists,
+    tmpDbBytes: exists ? fs.statSync(TMP_DB).size : 0,
+    embeddedSeedBytes: SEED_DB_BASE64 ? Buffer.from(SEED_DB_BASE64, 'base64').length : 0,
+    reseeded: databaseWasReseeded,
+  };
 }
 
 ensureServerlessDatabase();

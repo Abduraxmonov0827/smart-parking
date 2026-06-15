@@ -1,4 +1,5 @@
 import '../src/config/db-url';
+import '../src/config/seed-db';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { Express } from 'express';
 import fs from 'fs';
